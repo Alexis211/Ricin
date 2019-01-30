@@ -164,7 +164,7 @@ namespace Tox {
 
     public signal void friend_request (string id, string message);
     public signal void friend_online (Friend friend);
-    public signal bool group_request (int32 friend_number, uint8 type, uint8[] data);
+    public signal bool conference_request (int32 friend_number, uint8 type, uint8[] data);
 
     public signal void global_info (string message);
     public signal void message_read (uint32 friend_number, uint32 message_id);
@@ -230,7 +230,8 @@ namespace Tox {
           throw new ErrNew.LoadFailed ("The data format was invalid. This can happen when loading data that was saved by an older version of Tox, or when the data has been corrupted. When loading from badly formatted data, some data may have been loaded, and the rest is discarded. Passing an invalid length parameter also causes this error.");
       }
 
-      this.handle.callback_self_connection_status ((self, status) => {
+      this.handle.callback_self_connection_status ((self, status, ud) => {
+        Tox thi = (Tox) ud;
         switch (status) {
           case ConnectionStatus.NONE:
             debug ("Connection: none");
@@ -242,144 +243,157 @@ namespace Tox {
             debug ("Connection: UDP");
             break;
         }
-        this.connected = (status != ConnectionStatus.NONE);
+        thi.connected = (status != ConnectionStatus.NONE);
       });
 
-      this.handle.callback_friend_connection_status ((self, num, status) => {
-        if (this.friends[num] == null) { // new friend
-          this.friends[num] = new Friend (this, num);
-          this.friend_online (this.friends[num]); // TODO
+      this.handle.callback_friend_connection_status ((self, num, status, ud) => {
+        stdout.printf(@"Connection status $num: $status\n");
+        Tox thi = (Tox) ud;
+        if (thi.friends[num] == null) { // new friend
+          thi.friends[num] = new Friend (thi, num);
+          thi.friend_online (thi.friends[num]); // TODO
         }
 
-        this.friends[num].connected = (status != ConnectionStatus.NONE);
-        this.friends[num].send_avatar (); // Send our avatar, in case friend doesn't have it.
+        thi.friends[num].connected = (status != ConnectionStatus.NONE);
+        thi.friends[num].send_avatar (); // Send our avatar, in case friend doesn't have it.
       });
 
-      this.handle.callback_friend_name ((self, num, name) => {
-        var old_name = this.friends[num].name ?? (this.friends[num].pubkey.slice (0, 16) + "...");
+      this.handle.callback_friend_name ((self, num, name, ud) => {
+        Tox thi = (Tox) ud;
+        var old_name = thi.friends[num].name ?? (thi.friends[num].pubkey.slice (0, 16) + "...");
         var new_name = Util.arr2str (name);
         if (old_name != new_name) {
-          this.friends[num].friend_info (old_name + _(" is now known as ") + new_name);
-          this.friends[num].name = new_name;
+          thi.friends[num].friend_info (old_name + _(" is now known as ") + new_name);
+          thi.friends[num].name = new_name;
         }
       });
 
-      this.handle.callback_friend_status ((self, num, status) => {
-        this.friends[num].set_user_status (status);
+      this.handle.callback_friend_status ((self, num, status, ud) => {
+        Tox thi = (Tox) ud;
+        thi.friends[num].set_user_status (status);
       });
 
-      this.handle.callback_friend_status_message ((self, num, message) => {
-        if (this.friends[num].blocked) {
+      this.handle.callback_friend_status_message ((self, num, message, ud) => {
+        Tox thi = (Tox) ud;
+        if (thi.friends[num].blocked) {
           return;
         }
 
-        this.friends[num].status_message = Util.arr2str (message);
+        thi.friends[num].status_message = Util.arr2str (message);
       });
 
-      this.handle.callback_friend_message ((self, num, type, message) => {
-        if (this.friends[num].blocked) {
+      this.handle.callback_friend_message ((self, num, type, message, ud) => {
+        Tox thi = (Tox) ud;
+        if (thi.friends[num].blocked) {
           return;
         }
 
         if (type == MessageType.NORMAL) {
-          this.friends[num].message (Util.arr2str (message));
+          thi.friends[num].message (Util.arr2str (message));
         } else {
-          this.friends[num].action (Util.arr2str (message));
+          thi.friends[num].action (Util.arr2str (message));
         }
       });
 
-      this.handle.callback_friend_read_receipt ((self, friend_num, message_id) => {
-        this.message_read (friend_num, message_id);
+      this.handle.callback_friend_read_receipt ((self, friend_num, message_id, ud) => {
+        Tox thi = (Tox) ud;
+        thi.message_read (friend_num, message_id);
       });
 
-      this.handle.callback_friend_typing ((self, num, is_typing) => {
-        if (this.friends[num].blocked) {
+      this.handle.callback_friend_typing ((self, num, is_typing, ud) => {
+        Tox thi = (Tox) ud;
+        if (thi.friends[num].blocked) {
           return;
         }
 
-        this.friends[num].typing = is_typing;
+        thi.friends[num].typing = is_typing;
       });
 
-      this.handle.callback_friend_request ((self, pubkey, message) => {
+      this.handle.callback_friend_request ((self, pubkey, message, ud) => {
+        Tox thi = (Tox) ud;
         pubkey.length = ToxCore.PUBLIC_KEY_SIZE;
         string id = Util.bin2hex (pubkey);
         string msg = Util.arr2str (message);
         debug (@"Friend request from $id: $msg");
-        this.friend_request (id, msg);
+        thi.friend_request (id, msg);
       });
 
       // send
-      this.handle.callback_file_chunk_request ((self, friend, file, position, length) => {
-        if (this.friends[friend].blocked) {
+      this.handle.callback_file_chunk_request ((self, friend, file, position, length, ud) => {
+        Tox thi = (Tox) ud;
+        if (thi.friends[friend].blocked) {
           return;
         }
 
         if (length == 0) { // file transfer finished
           debug (@"friend $friend, file $file: done");
-          this.friends[friend].files_send.remove (file);
-          this.friends[friend].file_received (file);
+          thi.friends[friend].files_send.remove (file);
+          thi.friends[friend].file_received (file);
           return;
         }
         debug (@"friend $friend, file $file: chunk request, pos=$position, len=$length");
-        this.friends[friend].file_progress (file, position);
+        thi.friends[friend].file_progress (file, position);
 
-        Bytes full_data = this.friends[friend].files_send[file];
+        Bytes full_data = thi.friends[friend].files_send[file];
         Bytes slice = full_data.slice ((int) position, (int) (position + length));
 
         ERR_FILE_SEND_CHUNK err;
-        this.handle.file_send_chunk (friend, file, position, slice.get_data (), out err);
+        thi.handle.file_send_chunk (friend, file, position, slice.get_data (), out err);
 
         if (err != ERR_FILE_SEND_CHUNK.OK)
           debug ("file_send_chunk: %d", err);
       });
 
       // recv
-      this.handle.callback_file_recv_control ((self, friend, file, control) => {
-        if (this.friends[friend].blocked) {
+      this.handle.callback_file_recv_control ((self, friend, file, control, ud) => {
+        Tox thi = (Tox) ud;
+        if (thi.friends[friend].blocked) {
           return;
         }
 
         if (control == FileControl.CANCEL) {
           debug (@"friend $friend, file $file: cancelled");
-          this.friends[friend].file_canceled (file);
-          this.friends[friend].files_recv.remove (file);
+          thi.friends[friend].file_canceled (file);
+          thi.friends[friend].files_recv.remove (file);
         } else if (control == FileControl.PAUSE) {
           debug (@"friend $friend, file $file: paused");
-          this.friends[friend].file_paused (file);
+          thi.friends[friend].file_paused (file);
         } else if (control == FileControl.RESUME) {
           debug (@"friend $friend, file $file: resumed");
-          this.friends[friend].file_resumed (file);
+          thi.friends[friend].file_resumed (file);
         } else {
           assert_not_reached ();
         }
       });
 
       // recv
-      this.handle.callback_file_recv ((self, friend, file, kind, size, filename) => {
-        if (this.friends[friend].blocked) {
-          this.handle.file_control (friend, file, FileControl.CANCEL, null);
+      this.handle.callback_file_recv ((self, friend, file, kind, size, filename, ud) => {
+        Tox thi = (Tox) ud;
+        if (thi.friends[friend].blocked) {
+          thi.handle.file_control (friend, file, FileControl.CANCEL, null);
           return;
         }
 
         if (kind == FileKind.AVATAR) {
           debug (@"friend $friend, file $file: receive avatar");
-          this.friends[friend].files_recv[file] = new FileDownload.avatar ();
-          this.handle.file_control (friend, file, FileControl.RESUME, null);
+          thi.friends[friend].files_recv[file] = new FileDownload.avatar ();
+          thi.handle.file_control (friend, file, FileControl.RESUME, null);
         } else {
           debug (@"friend $friend, file $file: file_recv");
-          this.friends[friend].files_recv[file] = new FileDownload (Util.arr2str (filename));
-          this.friends[friend].file_transfer (Util.arr2str (filename), size, file);
+          thi.friends[friend].files_recv[file] = new FileDownload (Util.arr2str (filename));
+          thi.friends[friend].file_transfer (Util.arr2str (filename), size, file);
         }
       });
 
       // recv
-      this.handle.callback_file_recv_chunk ((self, friend, file, position, data) => {
-        if (this.friends[friend].blocked) {
-          this.handle.file_control (friend, file, FileControl.CANCEL, null);
+      this.handle.callback_file_recv_chunk ((self, friend, file, position, data, ud) => {
+        Tox thi = (Tox) ud;
+        if (thi.friends[friend].blocked) {
+          thi.handle.file_control (friend, file, FileControl.CANCEL, null);
           return;
         }
 
-        var fr = this.friends[friend];
+        var fr = thi.friends[friend];
         assert (fr.files_recv.contains (file));
         if (data.length == 0) {
           debug (@"friend $friend, file $file: done");
@@ -401,73 +415,78 @@ namespace Tox {
         }
 
         debug (@"friend $friend, file $file: chunk request, pos=$position");
-        this.friends[friend].file_progress (file, data.length);
+        thi.friends[friend].file_progress (file, data.length);
 
         assert (fr.files_recv[file].data.len == position);
         fr.files_recv[file].data.append (data);
       });
 
       // Groupchats:
-      this.handle.callback_group_invite ((self, friend_number, type, data) => {
-        if (this.friends[friend_number].blocked) {
+      this.handle.callback_conference_invite ((self, friend_number, type, data, ud) => {
+        Tox thi = (Tox) ud;
+        if (thi.friends[friend_number].blocked) {
           return;
         }
 
         //Friend friend = this.friends[(uint32)friend_number];
-        this.group_request (friend_number, type, data);
+        thi.conference_request (friend_number, type, data);
       });
 
-      this.handle.callback_group_message ((self, group_num, peer_num, message) => {
-        if (this.handle.group_peernumber_is_ours (group_num, peer_num) == 1) {
-          return;
-        }
-        
-        if (this.groups[group_num].peers[peer_num].muted) {
-          return;
-        }
+      this.handle.callback_conference_message ((self, group_num, peer_num, type, message, ud) => {
+        Tox thi = (Tox) ud;
+        if (type == MessageType.NORMAL) {
 
-        Peer peer = this.groups[group_num].peers[peer_num];
-        this.groups[group_num].message (peer, Util.arr2str (message));
+          if (thi.handle.conference_peer_number_is_ours (group_num, peer_num, null) == 1) {
+            return;
+          }
+          
+          if (thi.groups[group_num].peers[peer_num].muted) {
+            return;
+          }
+
+          Peer peer = thi.groups[group_num].peers[peer_num];
+          thi.groups[group_num].message (peer, Util.arr2str (message));
+        } else if (type == MessageType.ACTION) {
+          if (thi.handle.conference_peer_number_is_ours (group_num, peer_num, null) == 1) {
+            return;
+          }
+          
+          if (thi.groups[group_num].peers[peer_num].muted) {
+            return;
+          }
+
+          Peer peer = thi.groups[group_num].peers[peer_num];
+          thi.groups[group_num].action (peer, Util.arr2str (message));
+        }
       });
 
-      this.handle.callback_group_action ((self, group_num, peer_num, action) => {
-        if (this.handle.group_peernumber_is_ours (group_num, peer_num) == 1) {
-          return;
-        }
-        
-        if (this.groups[group_num].peers[peer_num].muted) {
-          return;
-        }
-
-        Peer peer = this.groups[group_num].peers[peer_num];
-        this.groups[group_num].action (peer, Util.arr2str (action));
-      });
-
-      this.handle.callback_group_title ((self, group_num, peer_num, title) => {
+      this.handle.callback_conference_title ((self, group_num, peer_num, title, ud) => {
+        Tox thi = (Tox) ud;
         string topic = Util.arr2str (title);
         debug (@"Peer $(peer_num) changed title to: $(topic)");
-        this.groups[group_num].name = topic;
+        thi.groups[group_num].name = topic;
         
         if (peer_num != -1) {
-          this.groups[group_num].title_changed (peer_num, topic);
+          thi.groups[group_num].title_changed (peer_num, topic);
         } else {
-          this.groups[group_num].title_changed (0, topic);
+          thi.groups[group_num].title_changed (0, topic);
         }
       });
 
-      this.handle.callback_group_namelist_change ((self, group_num, peer_num, change_type) => {
-        switch (change_type) {
-          case ChatChange.PEER_ADD:
-            this.groups[group_num].add_peer (peer_num);
-            break;
-          case ChatChange.PEER_DEL:
-            this.groups[group_num].remove_peer (peer_num);
-            break;
-          case ChatChange.PEER_NAME:
-            this.groups[group_num].change_peer_name (peer_num);
-            break;
-        }
-      });
+      // TODO FIX THIS
+      //this.handle.callback_group_namelist_change ((self, group_num, peer_num, change_type) => {
+      //  switch (change_type) {
+      //    case ChatChange.PEER_ADD:
+      //      this.groups[group_num].add_peer (peer_num);
+      //      break;
+      //    case ChatChange.PEER_DEL:
+      //      this.groups[group_num].remove_peer (peer_num);
+      //      break;
+      //    case ChatChange.PEER_NAME:
+      //      this.groups[group_num].change_peer_name (peer_num);
+      //      break;
+      //  }
+      //});
 
       // Let's bootstrap the Tox network now.
       this.bootstrap.begin ();
@@ -493,7 +512,7 @@ namespace Tox {
           return true;
         }
 
-        this.handle.iterate ();
+        this.handle.iterate (this);
         this.schedule_loop_iteration ();
         //return Source.REMOVE;
         return false;
@@ -638,7 +657,7 @@ namespace Tox {
     }
 
     public Group? accept_group_request (int32 friend_num, uint8[] data) {
-      int group_num = this.handle.join_groupchat (friend_num, data);
+      int group_num = this.handle.conference_join (friend_num, data, null);
       debug ("Accepted to join group number %d", group_num);
 
       if (group_num != -1) {
@@ -651,7 +670,7 @@ namespace Tox {
     }
 
     public Group? create_group (string name) {
-      int group_num = this.handle.add_groupchat ();
+      int group_num = this.handle.conference_new (null);
 
       if (group_num != -1) {
         var group = new Group (this, group_num);
@@ -664,7 +683,7 @@ namespace Tox {
     }
     
     public bool leave_group (int group_num) {
-      bool deleted = (this.handle.del_groupchat (group_num) != -1);
+      bool deleted = this.handle.conference_delete (group_num, null);
       if (deleted) {
         this.groups.remove (group_num);
         if (this.groups[group_num] == null) {
@@ -861,9 +880,10 @@ namespace Tox {
 
     public string name {
       owned get {
-        uint8[] name = new uint8[ToxCore.MAX_NAME_LENGTH];
-        int size = this.tox.handle.group_peername (group_num, this.num, name);
+        int size = this.tox.handle.conference_peer_get_name_size(group_num, this.num, null);
         if (size >= 0) {
+          uint8[] name = new uint8[size+1];
+          this.tox.handle.conference_peer_get_name(group_num, this.num, name, null);
           name[size] = 0; // Zero terminating.
           return (string) name;
         }
@@ -874,7 +894,7 @@ namespace Tox {
     public string pubkey {
       owned get {
         uint8[] pubkey = new uint8[ToxCore.PUBLIC_KEY_SIZE];
-        int size = this.tox.handle.group_peer_pubkey (group_num, this.num, pubkey);
+        int size = this.tox.handle.conference_peer_get_public_key (group_num, this.num, pubkey, null);
         if (size >= 0) {
           return Util.bin2hex (pubkey);
         }
@@ -910,7 +930,7 @@ namespace Tox {
 
     public int peers_count {
       get {
-        return this.tox.handle.group_number_peers (this.num);
+        return this.tox.handle.conference_peer_count (this.num, null);
       }
     }
 
@@ -961,15 +981,15 @@ namespace Tox {
     }
 
     public int send_message (string message) {
-      return this.tox.handle.group_message_send (this.num, message.data);
+      return this.tox.handle.conference_send_message (this.num, MessageType.NORMAL, message.data, null);
     }
 
     public int send_action (string action) {
-      return this.tox.handle.group_action_send (this.num, action.data);
+      return this.tox.handle.conference_send_message (this.num, MessageType.ACTION, action.data, null);
     }
 
     public void set_title (string title) {
-      this.tox.handle.group_set_title (this.num, title.data);
+      this.tox.handle.conference_set_title (this.num, title.data, null);
       this.name = title;
       this.title_changed (-1, title);
     }
@@ -985,9 +1005,9 @@ namespace Tox {
     internal HashTable<uint32, FileDownload> files_recv = new HashTable<uint32, FileDownload> (direct_hash, direct_equal);
 
     /* We could implement this like just a get { } that goes to libtoxcore, and
-     * use GLib.Object.notify_property () in the callbacks, but the name is not
-     * set until we leave the callback so we'll just keep our own copy.
-     */
+    * use GLib.Object.notify_property () in the callbacks, but the name is not
+    * set until we leave the callback so we'll just keep our own copy.
+    */
     public Gdk.Pixbuf? avatar_pixbuf { get; set; default = null; }
     public string name { get; set; }
     public string status_message { get; set; }
@@ -1164,7 +1184,7 @@ namespace Tox {
     }
     
     public bool invite_to_group (int group_num) {
-      if (this.tox.handle.invite_friend ((int32)this.num, group_num) != -1) {
+      if (this.tox.handle.conference_invite ((int32)this.num, group_num, null)) {
         return true;
       }
       return false;

@@ -1,4 +1,4 @@
-class Settings : GLib.Object {
+class Ricin.Settings : GLib.Object {
   /**
   * Private members, used only by this class.
   **/

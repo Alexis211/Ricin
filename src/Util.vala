@@ -113,11 +113,11 @@ namespace Util {
   }
   
   private static string get_emojis_font () {
-    return Settings.instance.emojis_font;
+    return Ricin.Settings.instance.emojis_font;
   }
   
   private static string get_emojis_size () {
-    return Settings.instance.emojis_size;
+    return Ricin.Settings.instance.emojis_size;
   }
 
   public static string render_emojis (string text) {
@@ -174,7 +174,7 @@ namespace Util {
 
   public static string add_markup (string text) {
     string markup = text; // Plaintext.
-    if (Settings.instance.message_parsing_mode == 0) { // Markdown.
+    if (Ricin.Settings.instance.message_parsing_mode == 0) { // Markdown.
       markup = Util.render_litemd (text);
     }
     return markup;

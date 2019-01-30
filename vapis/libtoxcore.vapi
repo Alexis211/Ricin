@@ -304,12 +304,13 @@ namespace ToxCore {
         SECRET_KEY
     }
     
-    [CCode (cname="TOX_CHAT_CHANGE", cprefix="TOX_CHAT_CHANGE_", has_type_id=false)]
-    public enum ChatChange {
-        PEER_ADD,
-        PEER_DEL,
-        PEER_NAME
-    }
+    // TODO FIX THIS
+    // [CCode (cname="TOX_CHAT_CHANGE", cprefix="TOX_CHAT_CHANGE_", has_type_id=false)]
+    // public enum ChatChange {
+    //     PEER_ADD,
+    //     PEER_DEL,
+    //     PEER_NAME
+    // }
 
     [CCode (cname="TOX_ERR_NEW", cprefix = "TOX_ERR_NEW_")]
     public enum ERR_NEW {
@@ -857,6 +858,82 @@ namespace ToxCore {
         SENDQ
     }
 
+    [CCode (cname="TOX_ERR_CONFERENCE_NEW", cprefix="TOX_ERR_CONFERENCE_NEW_")]
+    public enum ERR_CONFERENCE_NEW {
+        OK,
+        INIT,
+    }
+
+    [CCode (cname="TOX_ERR_CONFERENCE_DELETE", cprefix="TOX_ERR_CONFERENCE_DELETE_")]
+    public enum ERR_CONFERENCE_DELETE {
+        OK,
+        CONFERENCE_NOT_FOUND,
+    }
+
+    [CCode (cname="TOX_ERR_CONFERENCE_PEER_QUERY", cprefix="TOX_ERR_CONFERENCE_PEER_QUERY_")]
+    public enum ERR_CONFERENCE_PEER_QUERY {
+        OK,
+        CONFERENCE_NOT_FOUND,
+        PEER_NOT_FOUND,
+        NO_CONNECTION,
+    }
+
+    [CCode (cname="TOX_ERR_CONFERENCE_INVITE", cprefix="TOX_ERR_CONFERENCE_INVITE_")]
+    public enum ERR_CONFERENCE_INVITE {
+        OK,
+        CONFERENCE_NOT_FOUND,
+        FAIL_SEND,
+        NO_CONNECTION,
+    }
+
+    [CCode (cname="TOX_ERR_CONFERENCE_JOIN", cprefix="TOX_ERR_CONFERENCE_JOIN_")]
+    public enum ERR_CONFERENCE_JOIN {
+        OK,
+        INVALID_LENGTH,
+        WRONG_TYPE,
+        FRIEND_NOT_FOUND,
+        DUPLICATE,
+        INIT_FAIL,
+        FAIL_SEND,
+    }
+
+    [CCode (cname="TOX_ERR_CONFERENCE_SEND_MESSAGE", cprefix="TOX_ERR_CONFERENCE_SEND_MESSAGE_")]
+    public enum ERR_CONFERENCE_SEND_MESSAGE {
+        OK,
+        CONFERENCE_NOT_FOUND,
+        TOO_LONG,
+        NO_CONNECTION,
+        FAIL_SEND,
+    }
+
+    [CCode (cname="TOX_ERR_CONFERENCE_TITLE", cprefix="TOX_ERR_CONFERENCE_TITLE_")]
+    public enum ERR_CONFERENCE_TITLE {
+        OK,
+        CONFERENCE_NOT_FOUND,
+        INVALID_LENGTH,
+        FAIL_SEND,
+    }
+
+    [CCode (cname="TOX_ERR_CONFERENCE_GET_TYPE", cprefix="TOX_ERR_CONFERENCE_GET_TYPE_")]
+    public enum ERR_CONFERENCE_GET_TYPE {
+        OK,
+        CONFERENCE_NOT_FOUND,
+    }
+
+    [CCode (cname="TOX_ERR_CONFERENCE_BY_ID", cprefix="TOX_ERR_CONFERENCE_BY_ID_")]
+    public enum ERR_CONFERENCE_BY_ID {
+        OK,
+        NULL,
+        NOT_FOUND,
+    }
+
+    [CCode (cname="TOX_ERR_CONFERENCE_BY_UID", cprefix="TOX_ERR_CONFERENCE_BY_UID_")]
+    public enum ERR_CONFERENCE_BY_UID {
+        OK,
+        NULL,
+        NOT_FOUND,
+    }
+
     /**
     * This struct contains all the startup options for Tox. You can either allocate
     * this object yourself, and pass it to tox_options_default, or call
@@ -1022,7 +1099,7 @@ namespace ToxCore {
          *   tox_friend_get_name_size.
          */
         [CCode (cname="tox_friend_name_cb", has_target=true, has_type_id=false)]
-        public delegate void FriendNameFunc (Tox self, uint32 friend_number, uint8[] name);
+        public static delegate void FriendNameFunc (Tox self, uint32 friend_number, uint8[] name, void* udata);
 
         /**
          * Set the callback for the `friend_name` event. Pass NULL to unset.
@@ -1040,7 +1117,7 @@ namespace ToxCore {
          *   tox_friend_get_status_message_size.
          */
         [CCode (cname="tox_friend_status_message_cb", has_target=true, has_type_id=false)]
-        public delegate void FriendStatusMessageFunc (Tox self, uint32 friend_number, uint8[] message);
+        public static delegate void FriendStatusMessageFunc (Tox self, uint32 friend_number, uint8[] message, void* udata);
 
         /**
          * Set the callback for the `friend_status_message` event. Pass NULL to unset.
@@ -1055,7 +1132,7 @@ namespace ToxCore {
          * @param status The new user status.
          */
         [CCode (cname="tox_friend_status_cb", has_target=true, has_type_id=false)]
-        public delegate void FriendStatusFunc (Tox self, uint32 friend_number, UserStatus status);
+        public static delegate void FriendStatusFunc (Tox self, uint32 friend_number, UserStatus status, void* udata);
 
         /**
          * Set the callback for the `friend_status` event. Pass NULL to unset.
@@ -1071,7 +1148,7 @@ namespace ToxCore {
          *   tox_friend_get_connection_status on the passed friend_number.
          */
         [CCode (cname="tox_friend_connection_status_cb", has_target=true, has_type_id=false)]
-        public delegate void FriendConnectionStatusFunc (Tox self, uint32 friend_number, ConnectionStatus connection_status);
+        public static delegate void FriendConnectionStatusFunc (Tox self, uint32 friend_number, ConnectionStatus connection_status, void* data);
 
         /**
          * Set the callback for the `friend_connection_status` event. Pass NULL to unset.
@@ -1091,7 +1168,7 @@ namespace ToxCore {
          *   friend_number.
          */
         [CCode (cname = "tox_friend_typing_cb", has_target=true, has_type_id=false)]
-        public delegate void FriendTypingFunc (Tox self, uint32 friend_number, bool is_typing);
+        public static delegate void FriendTypingFunc (Tox self, uint32 friend_number, bool is_typing, void* data);
 
         /**
          * Set the callback for the `friend_typing` event. Pass NULL to unset.
@@ -1106,7 +1183,7 @@ namespace ToxCore {
          *   corresponding to the message sent.
          */
         [CCode (cname = "tox_friend_read_receipt_cb", has_target=true, has_type_id=false)]
-        public delegate void ReadReceiptFunc(Tox self, uint32 friend_number, uint32 message_id);
+        public static delegate void ReadReceiptFunc(Tox self, uint32 friend_number, uint32 message_id, void* data);
 
         /**
          * Set the callback for the `friend_read_receipt` event. Pass NULL to unset.
@@ -1122,7 +1199,7 @@ namespace ToxCore {
          * @param length The size of the message byte array.
          */
         [CCode (cname="tox_friend_request_cb", has_target=true, has_type_id=false)]
-        public delegate void FriendRequestFunc (Tox self, [CCode (array_length=false)] uint8[] public_key, [CCode (array_length_type="size_t")] uint8[] message);
+        public static delegate void FriendRequestFunc (Tox self, [CCode (array_length=false)] uint8[] public_key, [CCode (array_length_type="size_t")] uint8[] message, void* udata);
 
         /**
          * Set the callback for the `friend_request` event. Pass NULL to unset.
@@ -1137,7 +1214,7 @@ namespace ToxCore {
          * @param length The size of the message byte array.
          */
         [CCode (cname="tox_friend_message_cb", has_target=true, has_type_id=false)]
-        public delegate void FriendMessageFunc (Tox self, uint32 friend_number, MessageType type, [CCode (array_length_type="size_t")] uint8[] message);
+        public static delegate void FriendMessageFunc (Tox self, uint32 friend_number, MessageType type, [CCode (array_length_type="size_t")] uint8[] message, void* udata);
 
         /**
          * Set the callback for the `friend_message` event. Pass NULL to unset.
@@ -1156,7 +1233,7 @@ namespace ToxCore {
          * @param control The file control command received.
          */
         [CCode (cname = "tox_file_recv_control_cb", has_target=true, has_type_id=false)]
-        public delegate void FileControlReceiveFunc (Tox self, uint32 friend_number, uint32 file_number, FileControl control);
+        public static delegate void FileControlReceiveFunc (Tox self, uint32 friend_number, uint32 file_number, FileControl control, void* udata);
 
         /**
          * Set the callback for the `file_recv_control` event. Pass NULL to unset.
@@ -1189,7 +1266,7 @@ namespace ToxCore {
          * @param length The number of bytes requested for the current chunk.
          */
         [CCode (cname = "tox_file_chunk_request_cb", has_target=true, has_type_id=false)]
-        public delegate void FileChunkRequestFunc (Tox self, uint32 friend_number, uint32 file_number, uint64 position, size_t length);
+        public static delegate void FileChunkRequestFunc (Tox self, uint32 friend_number, uint32 file_number, uint64 position, size_t length, void* udata);
 
         /**
          * Set the callback for the `file_chunk_request` event. Pass NULL to unset.
@@ -1217,7 +1294,7 @@ namespace ToxCore {
          * @param filename_length Size in bytes of the filename.
          */
         [CCode (cname = "tox_file_recv_cb", has_target=true, has_type_id=false)]
-        public delegate void FileRecvFunc (Tox self, uint32 friend_number, uint32 file_number, FileKind kind, uint64 file_size, [CCode (array_length_type="size_t")] uint8[] filename);
+        public static delegate void FileRecvFunc (Tox self, uint32 friend_number, uint32 file_number, FileKind kind, uint64 file_size, [CCode (array_length_type="size_t")] uint8[] filename, void* udata);
 
         /**
          * Set the callback for the `file_recv` event. Pass NULL to unset.
@@ -1243,7 +1320,7 @@ namespace ToxCore {
          * @param length The length of the received chunk.
          */
         [CCode (cname = "tox_file_recv_chunk_cb", has_target=true, has_type_id=false)]
-        public delegate void FileRecvChunkFunc (Tox self, uint32 friend_number, uint32 file_number, uint64 position, uint8[] data);
+        public static delegate void FileRecvChunkFunc (Tox self, uint32 friend_number, uint32 file_number, uint64 position, uint8[] datai, void* udata);
 
         /**
          * Set the callback for the `file_recv_chunk` event. Pass NULL to unset.
@@ -1257,7 +1334,7 @@ namespace ToxCore {
          * @param connection_status Whether we are connected to the DHT.
          */
         [CCode (cname="tox_self_connection_status_cb", has_target=true, has_type_id=false)]
-        public delegate void ConnectionStatusFunc (Tox self, ConnectionStatus connection_status);
+        public static delegate void ConnectionStatusFunc (Tox self, ConnectionStatus connection_status, void* data);
 
         /**
          * Set the callback for the `self_connection_status` event. Pass NULL to unset.
@@ -1831,7 +1908,7 @@ namespace ToxCore {
          * The main loop that needs to be run in intervals of tox_iteration_interval()
          * milliseconds.
          */
-        public void iterate ();
+        public void iterate (void* data);
 
         /**
          * Send a custom lossy packet to a friend.
@@ -1879,7 +1956,7 @@ namespace ToxCore {
          * @param length The length of the packet data byte array.
          */
         [CCode (cname = "tox_file_recv_control_cb", has_target=true, has_type_id=false)]
-        public delegate void FriendLossyPacketFunc (Tox self, uint32 friend_number, uint8[] data);
+        public static delegate void FriendLossyPacketFunc (Tox self, uint32 friend_number, uint8[] data, void* udata);
 
         /**
          * Set the callback for the `friend_lossy_packet` event. Pass NULL to unset.
@@ -1892,7 +1969,7 @@ namespace ToxCore {
          * @param length The length of the packet data byte array.
          */
         [CCode (cname = "tox_file_recv_control_cb", has_target=true, has_type_id=false)]
-        public delegate void FriendLosslessPacketFunc (Tox self, uint32 friend_number, uint8[] data);
+        public static delegate void FriendLosslessPacketFunc (Tox self, uint32 friend_number, uint8[] data, void* udata);
 
         /**
          * Set the callback for the `friend_lossless_packet` event. Pass NULL to unset.
@@ -1910,67 +1987,59 @@ namespace ToxCore {
           *
           * for what type means see ToxGroupChatType_
           */
-        public delegate void GroupInviteFunc (Tox self, int32 friend_number, uint8 type, uint8[] data);
+        public static delegate void GroupInviteFunc (Tox self, int32 friend_number, uint8 type, uint8[] data, void* udata);
 
         /**
          * Set the callback for group invites.
          */
-        public void callback_group_invite (GroupInviteFunc callback);
+        public void callback_conference_invite (GroupInviteFunc callback);
 
-        public delegate void GroupMessageFunc (Tox self, int group_number, int peer_number, [CCode (array_length_type="uint16_t")] uint8[] message);
+        public static delegate void GroupMessageFunc (Tox self, int group_number, int peer_number, MessageType type, [CCode (array_length_type="size_t")] uint8[] message, void* udata);
 
         /**
          * Set the callback for group messages.
          */
-        public void callback_group_message (GroupMessageFunc callback);
-
-        /**
-         * The callback for group actions
-         */
-        public delegate void GroupActionFunc (Tox self, int group_number, int peer_number, [CCode (array_length_type="uint16_t")] uint8[] action);
-
-        /**
-         * Set the callback for group actions.
-         */
-        public void callback_group_action (GroupActionFunc callback);
+        public void callback_conference_message (GroupMessageFunc callback);
 
         /**
          * The callback for title changes
          *
          * if peernumber == -1, then author is unknown (e.g. initial joining the group)
          */
-        public delegate void GroupTitleFunc (Tox self, int group_number, int peer_number, uint8[] title);
+        public static delegate void GroupTitleFunc (Tox self, int group_number, int peer_number, uint8[] title, void* udata);
 
         /**
          * Set callback function for title changes.
          */
-        public void callback_group_title (GroupTitleFunc callback);
+        public void callback_conference_title (GroupTitleFunc callback);
 
         /**
          * The callback for peer name list changes
          */
-        public delegate void GroupNamelistChangeFunc (Tox self, int group_number, int peer_number, ToxCore.ChatChange change_type);
+        // TODO FIX THIS
+        // public delegate void GroupNamelistChangeFunc (Tox self, int group_number, int peer_number, ToxCore.ChatChange change_type);
 
         /**
          * Set callback function for peer name list changes.
          *
          * It gets called every time the name list changes(new peer/name, deleted peer)
          */
-        public void callback_group_namelist_change (GroupNamelistChangeFunc callback);
+        // TODO FIX THIS
+        //public void callback_group_namelist_change (GroupNamelistChangeFunc callback);
 
         /**
          * Creates a new groupchat and puts it in the chats array.
          *
          * @return group number on success, -1 on failure.
          */
-        public int add_groupchat ();
+        public int conference_new (out ERR_CONFERENCE_NEW? error);
 
         /**
          * Delete a groupchat from the chats array.
          *
-         * @return 0 on success, -1 on failure.
+         * @return true on success, false on failure.
          */
-        public int del_groupchat (int group_number);
+        public bool conference_delete (int group_number, out ERR_CONFERENCE_DELETE? error);
 
         /**
          * Copy the name of peernumber who is in groupnumber to name.
@@ -1978,7 +2047,8 @@ namespace ToxCore {
          *
          * @return length of name on success, -1 on failure
          */
-        public int group_peername (int group_number, int peer_number, [CCode (array_length=false)] uint8[] name);
+        public int conference_peer_get_name_size(int group_number, int peer_number, out ERR_CONFERENCE_PEER_QUERY? error);
+        public int conference_peer_get_name(int group_number, int peer_number, [CCode (array_length=false)] uint8[] name, out ERR_CONFERENCE_PEER_QUERY? error);
 
         /**
          * Copy the public key of peernumber who is in groupnumber to public_key.
@@ -1986,13 +2056,13 @@ namespace ToxCore {
          *
          * @return 0 on success, -1 on failure
          */
-        public int group_peer_pubkey (int group_number, int peer_number, [CCode (array_length=false)] uint8[] public_key);
+        public int conference_peer_get_public_key (int group_number, int peer_number, [CCode (array_length=false)] uint8[] public_key, out ERR_CONFERENCE_PEER_QUERY? error);
 
         /**
          * invite friendnumber to groupnumber
-         * @return 0 on success, -1 on failure
+         * @return true on success, false on failure
          */
-        public int invite_friend (int32 friend_number, int group_number);
+        public bool conference_invite (int32 friend_number, int group_number, out ERR_CONFERENCE_INVITE? error);
 
         /**
          * Join a group (you need to have been invited first.) using data of length obtained
@@ -2000,25 +2070,19 @@ namespace ToxCore {
          *
          * @return group number on success, -1 on failure.
          */
-        public int join_groupchat (int32 friend_number, uint8[] data);
+        public int conference_join (int32 friend_number, uint8[] data, out ERR_CONFERENCE_JOIN? error);
 
         /**
          * send a group message
          * @return 0 on success, -1 on failure
          */
-        public int group_message_send (int group_number, uint8[] message);
-
-        /**
-         * send a group action
-         * @return 0 on success, -1 on failure
-         */
-        public int group_action_send (int group_number, uint8[] action);
+        public int conference_send_message (int group_number, MessageType type, uint8[] message, out ERR_CONFERENCE_SEND_MESSAGE? error);
 
         /**
          * set the group's title, limited to MAX_NAME_LENGTH
          * @return 0 on success, -1 on failure
          */
-        public int group_set_title (int group_number, uint8[] title);
+        public int conference_set_title (int group_number, uint8[] title, out ERR_CONFERENCE_TITLE? error);
 
         /**
          * Get group title from groupnumber and put it in title.
@@ -2026,19 +2090,20 @@ namespace ToxCore {
          *
          * @return length of copied title on success, -1 on failure.
          */
-        public int group_get_title (int group_number, [CCode (array_length_type = "uint32_t")] ref uint8[] title);
+        public size_t conference_get_title_size(int32 group_number, out ERR_CONFERENCE_TITLE? error);
+        public size_t conference_get_title(int32 group_number, [CCode (array_length=false)] uint8[] title, out ERR_CONFERENCE_TITLE? error);
 
         /**
          * Check if the current peernumber corresponds to ours.
          *
          * @return 1 if the peernumber corresponds to ours, 0 on failure.
          */
-        public int group_peernumber_is_ours (int group_number, int peer_number);
+        public int conference_peer_number_is_ours (int group_number, int peer_number, out ERR_CONFERENCE_PEER_QUERY? error);
 
         /**
          * @return the number of peers in the group chat on success, -1 on failure
          */
-        public int group_number_peers (int group_number);
+        public int conference_peer_count (int group_number, out ERR_CONFERENCE_PEER_QUERY? error);
 
         /**
          * List all the peers in the group chat.

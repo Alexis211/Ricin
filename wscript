@@ -30,8 +30,8 @@ def configure(conf):
 	conf.check_cfg(package='libsoup-2.4', uselib_store='SOUP', mandatory=1, args='--cflags --libs')
 	conf.check_cfg(package='json-glib-1.0', uselib_store='JSONGLIB', mandatory=1, args='--cflags --libs')
 	conf.check_cfg(package='libnotify', uselib_store='NOTIFY', mandatory=1, args='--cflags --libs')
-	conf.check_cfg(package='libtoxcore', uselib_store='TOXCORE', mandatory=1, args='--cflags --libs')
-	conf.check(lib='toxencryptsave', uselib_store='TOXES', mandatory=1, args='--cflags --libs')
+	conf.check_cfg(package='toxcore', uselib_store='TOXCORE', mandatory=1, args='--cflags --libs')
+	#conf.check(lib='toxencryptsave', uselib_store='TOXES', mandatory=1, args='--cflags --libs')
 
 	# C compiler flags.
 	conf.env.append_unique('CFLAGS', [
@@ -52,13 +52,15 @@ def configure(conf):
 	])
 	# Linker flags.
 	conf.env.append_unique('LDFLAGS', [
-		'-fsanitize=address'
+		'-fsanitize=address',
+		'-lm'
 	])
 	# Vala compiler flags.
 	conf.env.append_unique('VALAFLAGS', [
 		'--enable-experimental',
 		'--enable-deprecated',
-		'--debug'
+		'--debug',
+		'--disable-warnings'
 		#'--fatal-warnings'
 	])
 

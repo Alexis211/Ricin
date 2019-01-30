@@ -307,7 +307,7 @@ public class Ricin.MainWindow : Gtk.ApplicationWindow {
     /*
     * TODO: DEBUG THAT FUCKING SHIT.
     */
-    this.tox.group_request.connect ((friend_number, type, data) => {
+    this.tox.conference_request.connect ((friend_number, type, data) => {
       debug (@"Friend $(friend_number) invited you in a group, accepting...");
       Tox.Group? group = this.tox.accept_group_request (friend_number, data);
 

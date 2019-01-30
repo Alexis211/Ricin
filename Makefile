@@ -1,17 +1,17 @@
 .PHONY: autogen build debug install style nodesfile pot changelog reset-settings
 
 autogen:
-	./waf distclean
-	./waf configure --prefix=/usr/
+	python2 waf distclean
+	python2 waf configure --prefix=/usr/
 
 build:
-	./waf build
+	python2 waf build
 
 debug: build
 	G_MESSAGES_DEBUG=all GOBJECT_DEBUG=instance-count gdb -ex run ./build/Ricin
 
 install: build
-	./waf install
+	python2 waf install
 
 style:
 	astyle \
