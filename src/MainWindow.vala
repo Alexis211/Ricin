@@ -138,12 +138,6 @@ public class Ricin.MainWindow : Gtk.ApplicationWindow {
 
     this.settings_view.reload_options.connect (this.reload_tox);
 
-    // Display the welcome screen while their is no friends online.
-    /*var welcome = new WelcomeView (this.tox);
-    this.chat_stack.add_named (welcome, "welcome");
-    this.chat_stack.set_visible_child (welcome);
-    this.focused_view = "welcome";*/
-
     var path = avatar_path ();
     if (FileUtils.test (path, FileTest.EXISTS)) {
       tox.send_avatar (path);

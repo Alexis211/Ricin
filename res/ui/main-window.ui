@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.19.0 -->
+<!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.16"/>
   <object class="GtkAdjustment" id="adjustment1">
@@ -139,10 +139,10 @@
                             <property name="visible">True</property>
                             <property name="sensitive">False</property>
                             <property name="can_focus">True</property>
+                            <property name="focus_on_click">False</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Change your status</property>
                             <property name="image">image_user_status</property>
-                            <property name="focus_on_click">False</property>
                             <property name="always_show_image">True</property>
                             <signal name="clicked" handler="cycle_user_status" swapped="no"/>
                             <style>
@@ -512,7 +512,7 @@
                     <property name="height_request">32</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="homogeneous">True</property>
+                    <property name="spacing">12</property>
                     <child>
                       <object class="GtkButton" id="button_add_friend_show">
                         <property name="visible">True</property>

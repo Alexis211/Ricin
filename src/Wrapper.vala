@@ -247,7 +247,7 @@ namespace Tox {
       });
 
       this.handle.callback_friend_connection_status ((self, num, status, ud) => {
-        stdout.printf(@"Connection status $num: $status\n");
+        debug (@"Connection status $num: $status\n");
         Tox thi = (Tox) ud;
         if (thi.friends[num] == null) { // new friend
           thi.friends[num] = new Friend (thi, num);

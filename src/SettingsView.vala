@@ -1,7 +1,6 @@
 [GtkTemplate (ui="/chat/tox/ricin/ui/settings-view.ui")]
 class Ricin.SettingsView : Gtk.Box {
   // Notebook buttons
-  [GtkChild] Gtk.Box box_tab_buttons;
   [GtkChild] Gtk.Notebook notebook_settings;
 
   // General settings tab.
@@ -62,25 +61,6 @@ class Ricin.SettingsView : Gtk.Box {
     * Pack buttons in the RicinSettingsView box.
     * This is a quick fix for the issue with tabpages.
     **/
-    Gtk.Box box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
-    box.set_homogeneous (true);
-
-    var pages_number = this.notebook_settings.get_n_pages ();
-    for (var i = 0; i < pages_number; i++) {
-      var page_num = i;
-      var page = this.notebook_settings.get_nth_page (i);
-      var label = this.notebook_settings.get_tab_label_text (page);
-
-      var btn = new Gtk.Button.with_mnemonic (label);
-      btn.set_relief (Gtk.ReliefStyle.NONE);
-      btn.clicked.connect (() => {
-        this.notebook_settings.set_current_page (page_num);
-      });
-
-      box.pack_start (btn, true, true, 0);
-    }
-
-    this.box_tab_buttons.add (box);
 
     // About tab →
     this.label_app_description.set_markup (_(Ricin.APP_SUMMARY));
