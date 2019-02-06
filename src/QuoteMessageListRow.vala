@@ -87,7 +87,7 @@ class Ricin.QuoteMessageListRow : Gtk.ListBoxRow {
         this.image_author.pixbuf = p.scale_simple (24, 24, Gdk.InterpType.BILINEAR);;
       });
 
-      name = Util.escape_html (this.sender.get_uname ());
+      name = Util.escape_html (this.sender.name);
       this.label_name.set_text (name);
 
       this.stack.set_visible_child_name ("timestamp");

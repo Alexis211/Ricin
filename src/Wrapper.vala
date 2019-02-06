@@ -8,7 +8,6 @@ namespace Tox {
     ONLINE,
     AWAY,
     BUSY,
-    BLOCKED,
     OFFLINE
   }
 
@@ -263,30 +262,23 @@ namespace Tox {
         var old_name = thi.friends[num].name ?? (thi.friends[num].pubkey.slice (0, 16) + "...");
         var new_name = Util.arr2str (name);
         if (old_name != new_name) {
+          thi.friends[num].name_changed (new_name);
           thi.friends[num].friend_info (old_name + _(" is now known as ") + new_name);
-          thi.friends[num].name = new_name;
         }
       });
 
       this.handle.callback_friend_status ((self, num, status, ud) => {
         Tox thi = (Tox) ud;
-        thi.friends[num].set_user_status (status);
+        thi.friends[num].notify_status_changed ();
       });
 
       this.handle.callback_friend_status_message ((self, num, message, ud) => {
         Tox thi = (Tox) ud;
-        if (thi.friends[num].blocked) {
-          return;
-        }
-
-        thi.friends[num].status_message = Util.arr2str (message);
+        thi.friends[num].status_message_changed (Util.arr2str (message));
       });
 
       this.handle.callback_friend_message ((self, num, type, message, ud) => {
         Tox thi = (Tox) ud;
-        if (thi.friends[num].blocked) {
-          return;
-        }
 
         if (type == MessageType.NORMAL) {
           thi.friends[num].message (Util.arr2str (message));
@@ -302,9 +294,6 @@ namespace Tox {
 
       this.handle.callback_friend_typing ((self, num, is_typing, ud) => {
         Tox thi = (Tox) ud;
-        if (thi.friends[num].blocked) {
-          return;
-        }
 
         thi.friends[num].typing = is_typing;
       });
@@ -321,9 +310,6 @@ namespace Tox {
       // send
       this.handle.callback_file_chunk_request ((self, friend, file, position, length, ud) => {
         Tox thi = (Tox) ud;
-        if (thi.friends[friend].blocked) {
-          return;
-        }
 
         if (length == 0) { // file transfer finished
           debug (@"friend $friend, file $file: done");
@@ -347,9 +333,6 @@ namespace Tox {
       // recv
       this.handle.callback_file_recv_control ((self, friend, file, control, ud) => {
         Tox thi = (Tox) ud;
-        if (thi.friends[friend].blocked) {
-          return;
-        }
 
         if (control == FileControl.CANCEL) {
           debug (@"friend $friend, file $file: cancelled");
@@ -369,10 +352,6 @@ namespace Tox {
       // recv
       this.handle.callback_file_recv ((self, friend, file, kind, size, filename, ud) => {
         Tox thi = (Tox) ud;
-        if (thi.friends[friend].blocked) {
-          thi.handle.file_control (friend, file, FileControl.CANCEL, null);
-          return;
-        }
 
         if (kind == FileKind.AVATAR) {
           debug (@"friend $friend, file $file: receive avatar");
@@ -388,10 +367,6 @@ namespace Tox {
       // recv
       this.handle.callback_file_recv_chunk ((self, friend, file, position, data, ud) => {
         Tox thi = (Tox) ud;
-        if (thi.friends[friend].blocked) {
-          thi.handle.file_control (friend, file, FileControl.CANCEL, null);
-          return;
-        }
 
         var fr = thi.friends[friend];
         assert (fr.files_recv.contains (file));
@@ -424,9 +399,6 @@ namespace Tox {
       // Groupchats:
       this.handle.callback_conference_invite ((self, friend_number, type, data, ud) => {
         Tox thi = (Tox) ud;
-        if (thi.friends[friend_number].blocked) {
-          return;
-        }
 
         //Friend friend = this.friends[(uint32)friend_number];
         thi.conference_request (friend_number, type, data);
@@ -1009,23 +981,13 @@ namespace Tox {
     * set until we leave the callback so we'll just keep our own copy.
     */
     public Gdk.Pixbuf? avatar_pixbuf { get; set; default = null; }
-    public string name { get; set; }
-    public string status_message { get; set; }
 
-    public string pubkey {
-      owned get {
-        uint8[] chars = new uint8[ToxCore.PUBLIC_KEY_SIZE];
-        tox.handle.friend_get_public_key (num, chars, null);
-        return Util.bin2hex (chars);
-      }
-    }
-
-    public UserStatus status { get; private set; }
-    public UserStatus? last_status { get; set; }
     public bool connected { get; set; }
     public bool typing { get; set; }
-    public bool blocked { get; set; default = false; }
 
+    public signal void name_changed (string message);
+    public signal void status_changed (UserStatus status);
+    public signal void status_message_changed (string message);
     public signal void message (string message);
     public signal void action (string message);
     public signal void avatar (Gdk.Pixbuf pixbuf);
@@ -1041,7 +1003,6 @@ namespace Tox {
     public Friend (Tox tox, uint32 num) {
       this.tox = tox;
       this.num = num;
-      this.last_status = UserStatus.OFFLINE;
 
       string profile_dir = Path.build_path (Path.DIR_SEPARATOR_S, Environment.get_user_config_dir (), "tox");
       string avatars_dir = Path.build_path (Path.DIR_SEPARATOR_S, profile_dir, "avatars");
@@ -1055,8 +1016,7 @@ namespace Tox {
         this.avatar_pixbuf = Gdk.pixbuf_get_from_surface (surface, 0, 0, 48, 48);
       }
 
-      this.notify["connected"].connect ((o, p) => update_user_status ());
-      this.notify["blocked"].connect ((o, p) => update_user_status ());
+      this.notify["connected"].connect ((o, p) => notify_status_changed ());
 
       this.avatar.connect ((pixbuf) => {
         uint8[] pixels;
@@ -1067,18 +1027,30 @@ namespace Tox {
       });
     }
 
-    public string get_uname () {
-      uint8[] text = new uint8[ToxCore.MAX_NAME_LENGTH];
-      this.tox.handle.friend_get_name (this.num, text, null);
-
-      return (string) text;
+    public string pubkey {
+      owned get {
+        uint8[] chars = new uint8[ToxCore.PUBLIC_KEY_SIZE];
+        tox.handle.friend_get_public_key (num, chars, null);
+        return Util.bin2hex (chars);
+      }
     }
 
-    public string get_ustatus_message () {
-      uint8[] text = new uint8[ToxCore.MAX_STATUS_MESSAGE_LENGTH];
-      this.tox.handle.friend_get_status_message (this.num, text, null);
+    public string name {
+      owned get {
+        uint8[] text = new uint8[ToxCore.MAX_NAME_LENGTH];
+        this.tox.handle.friend_get_name (this.num, text, null);
 
-      return (string) text;
+        return (string) text;
+      }
+    }
+
+    public string status_message {
+      owned get {
+        uint8[] text = new uint8[ToxCore.MAX_STATUS_MESSAGE_LENGTH];
+        this.tox.handle.friend_get_status_message (this.num, text, null);
+
+        return (string) text;
+      }
     }
 
     public string last_online (string? format) {
@@ -1101,18 +1073,21 @@ namespace Tox {
       return false;
     }
 
-    public void set_user_status (ToxCore.UserStatus status) {
-      if (blocked) {
-        this.status = UserStatus.BLOCKED;
-      } else if (!connected) {
-        this.status = UserStatus.OFFLINE;
-      } else {
-        this.status = core_to_wrapper_status (status);
+    public UserStatus status {
+      get {
+        UserStatus status;
+        if (!connected) {
+          status = UserStatus.OFFLINE;
+        } else {
+          var st = tox.handle.friend_get_status (num, null);
+          status = core_to_wrapper_status (st);
+        }
+        return status;
       }
     }
 
-    public void update_user_status () {
-      this.set_user_status (tox.handle.friend_get_status (num, null));
+    public void notify_status_changed () {
+      this.status_changed(this.status);
     }
 
     public void reply_file_transfer (bool accept, uint32 id) {

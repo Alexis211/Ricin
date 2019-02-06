@@ -224,7 +224,6 @@ public class Ricin.MainWindow : Gtk.ApplicationWindow {
       string status_message = friend.fr.status_message.down ();
       string pubkey = friend.fr.pubkey.down ();
       Tox.UserStatus status = friend.fr.status;
-      bool is_blocked = friend.fr.blocked;
       bool is_presumed_dead = friend.fr.is_presumed_dead ();
 
       var mode = this.combobox_friend_filter.active;
@@ -239,11 +238,6 @@ public class Ricin.MainWindow : Gtk.ApplicationWindow {
         return true;
       } else if (search.length > 0) {
         switch (search) {
-          case "f:blocked":
-            if (is_blocked) {
-              return true;
-            }
-            return false;
           case "f:old":
             if (is_presumed_dead) {
               return true;
@@ -339,7 +333,7 @@ public class Ricin.MainWindow : Gtk.ApplicationWindow {
         debug (@"Accepted friend request from $id");
         var friend = tox.accept_friend_request (id);
         if (friend != null) {
-          friend.name = id; // To avoid blank items.
+          //friend.name = id; // To avoid blank items.
           this.tox.save_data (); // Needed to avoid breaking profiles if app crash.
 
           friend.position = friends.get_n_items ();
@@ -477,8 +471,8 @@ public class Ricin.MainWindow : Gtk.ApplicationWindow {
       friend.connected = false;
       friend.position = friends.get_n_items ();
       debug ("Friend position: %u", friend.position);
-      debug ("Friend name: %s", friend.get_uname ());
-      debug ("Friend status_message: %s", friend.get_ustatus_message ());
+      debug ("Friend name: %s", friend.name);
+      debug ("Friend status_message: %s", friend.status_message);
       this.friends.append (friend);
 
       var view_name = "chat-%s".printf (friend.pubkey);
@@ -494,7 +488,7 @@ public class Ricin.MainWindow : Gtk.ApplicationWindow {
   * This is the sort method used for sorting contacts based on:
   * Contact have unreadCount > 0: top.
   * Contact is online (top) → Contact is offline (end)
-  * Contact status: Online → Away → Busy → Blocked → Offlines with name → Offlines without name.
+  * Contact status: Online → Away → Busy → Offlines with name → Offlines without name.
   */
   public static int sort_friendlist_online (Gtk.Widget row1, Gtk.Widget row2) {
     var friend1 = ((FriendListRow) row1);
@@ -509,9 +503,6 @@ public class Ricin.MainWindow : Gtk.ApplicationWindow {
     } else if (friend1.fr.status == Tox.UserStatus.OFFLINE && friend2.fr.status != Tox.UserStatus.OFFLINE) {
       return 1;
     } else if (friend1.fr.status != Tox.UserStatus.OFFLINE && friend2.fr.status != Tox.UserStatus.OFFLINE) {
-      if (friend1.fr.blocked && !friend2.fr.blocked) {
-        return 1;
-      }
       return friend1.fr.status - friend2.fr.status;
     }
     return friend1.fr.status - friend2.fr.status;
@@ -531,7 +522,7 @@ public class Ricin.MainWindow : Gtk.ApplicationWindow {
 
   public void remove_friend (Tox.Friend fr) {
     var friend = fr;
-    var name = friend.get_uname ();
+    var name = friend.name;
     var dialog = new Gtk.MessageDialog (
       this,
       Gtk.DialogFlags.MODAL, Gtk.MessageType.QUESTION, Gtk.ButtonsType.NONE,
@@ -875,7 +866,7 @@ public class Ricin.MainWindow : Gtk.ApplicationWindow {
           this.grouplist.unselect_row (this.selected_row);
         }
 
-        this.set_title (@"$(this.window_title) - $(friend.get_uname ())");
+        this.set_title (@"$(this.window_title) - $(friend.name)");
         ((ChatView) chat_view).entry.grab_focus ();
       }
 

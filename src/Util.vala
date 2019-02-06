@@ -211,9 +211,6 @@ namespace Util {
     string icon = "";
 
     switch (status) {
-      case Tox.UserStatus.BLOCKED:
-        icon = (messagesCount > 0) ? "invisible" : "invisible";
-        break;
       case Tox.UserStatus.ONLINE:
         icon = (messagesCount > 0) ? "online_notification" : "online";
         break;
@@ -236,9 +233,6 @@ namespace Util {
     string str = "";
 
     switch (status) {
-      case Tox.UserStatus.BLOCKED:
-        str = _("Blocked");
-        break;
       case Tox.UserStatus.ONLINE:
         str = _("Online");
         break;

@@ -14,7 +14,6 @@ class Ricin.FriendListRow : Gtk.ListBoxRow {
 
   private string current_status_icon = "";
   private Gtk.Menu menu_friend;
-  private Gtk.ImageMenuItem block_friend;
 
   private Settings settings;
   private ViewType view_type;
@@ -25,6 +24,8 @@ class Ricin.FriendListRow : Gtk.ListBoxRow {
   public string view_name;
   public int unreadCount = 0;
 
+  private Tox.UserStatus last_status;
+
   private enum ViewType {
     FULL,
     COMPACT
@@ -34,16 +35,17 @@ class Ricin.FriendListRow : Gtk.ListBoxRow {
     this.fr = fr;
     this.settings = Settings.instance;
     this.view_name = "chat-%s".printf (fr.pubkey);
+    this.last_status = this.fr.status;
 
     debug (@"Friend name: $(this.fr.name)");
     if (this.fr.name == null) {
-      if (this.fr.get_uname () == null) {
+      if (this.fr.name == null) {
         this.username.set_text (this.fr.pubkey);
       } else {
-        this.username.set_markup (Util.render_emojis (Util.escape_html (this.fr.get_uname ())));
+        this.username.set_markup (Util.render_emojis (Util.escape_html (this.fr.name)));
       }
-      this.status.set_markup (Util.escape_html (this.fr.get_ustatus_message ()));
-      this.status.set_tooltip_markup (Util.escape_html (this.fr.get_ustatus_message ()));
+      this.status.set_markup (Util.escape_html (this.fr.status_message));
+      this.status.set_tooltip_markup (Util.escape_html (this.fr.status_message));
     } else {
       this.username.set_markup (Util.render_emojis (Util.escape_html (this.fr.name)));
       this.status.set_text (Util.escape_html (this.fr.status_message));
@@ -79,27 +81,23 @@ class Ricin.FriendListRow : Gtk.ListBoxRow {
 
     fr.avatar.connect (p => avatar.pixbuf = p);
 
-    fr.notify["name"].connect ((obj, prop) => {
+    fr.name_changed.connect ((prop) => {
       this.username.set_markup (Util.render_emojis (Util.escape_html (this.fr.name)));
     });
 
-    fr.notify["status-message"].connect ((obj, prop) => {
+    fr.status_message_changed.connect ((prop) => {
       this.status.set_text (this.fr.status_message);
       this.status.set_tooltip_markup (this.fr.status_message);
     });
 
-    fr.notify["status"].connect ((obj, prop) => {
-      if (this.settings.enable_notify_status && this.fr.status != this.fr.last_status) {
+    fr.status_changed.connect ((prop) => {
+      if (this.settings.enable_notify_status && this.fr.status != this.last_status) {
         Notification.notify_status (fr);
       }
 
       string icon = Util.status_to_icon (this.fr.status, 0);
       this.userstatus.set_from_resource (@"/chat/tox/ricin/images/status/$icon.png");
       this.changed (); // we sort by user status
-    });
-
-    fr.notify["blocked"].connect ((obj, prop) => {
-      this.block_friend.set_label ((this.fr.blocked) ? _("Unblock friend") : _("Block friend"));
     });
 
     fr.avatar.connect ((pixbuf_avatar) => {
@@ -326,22 +324,9 @@ class Ricin.FriendListRow : Gtk.ListBoxRow {
       main_window.remove_friend (this.fr);
     });
 
-    // Block friend action.
-    var block_friend_label = (this.fr.blocked) ? _("Unblock") : _("Block");
-    var block_friend_icon = new Gtk.Image.from_icon_name ("dialog-error-symbolic.symbolic", Gtk.IconSize.MENU);
-    this.block_friend = new Gtk.ImageMenuItem.with_label (block_friend_label);
-    this.block_friend.always_show_image = true;
-    this.block_friend.set_image (block_friend_icon);
-    this.block_friend.activate.connect (() => {
-      var main_window = this.get_toplevel () as MainWindow;
-      var view = main_window.chat_stack.get_child_by_name ("chat-%s".printf (this.fr.pubkey));
-      ((ChatView) view).block_friend ();
-    });
-
     this.menu_friend.append (open_friend_profile);
     this.menu_friend.append (copy_friend_toxid);
     this.menu_friend.append (new Gtk.SeparatorMenuItem ());
-    this.menu_friend.append (block_friend);
     this.menu_friend.append (delete_friend);
     this.menu_friend.attach_to_widget (this, null);
     this.menu_friend.show_all ();

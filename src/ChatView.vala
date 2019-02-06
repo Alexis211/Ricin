@@ -36,7 +36,6 @@ class Ricin.ChatView : Gtk.Box {
   [GtkChild] Gtk.Label label_friend_profile_status_message;
   [GtkChild] Gtk.Label label_friend_last_seen;
   [GtkChild] Gtk.Button button_friend_copy_toxid;
-  [GtkChild] Gtk.Button button_friend_block;
   [GtkChild] Gtk.Button button_friend_delete;
 
   [Signal (action = true)] private signal void copy_messages_selection ();
@@ -77,10 +76,10 @@ class Ricin.ChatView : Gtk.Box {
   }
 
   private void init_widgets () {
-    this.label_friend_profil_name.set_markup (Util.render_emojis (this.fr.get_uname ()));
-    this.label_friend_profile_status_message.set_markup (Util.render_litemd (this.fr.get_ustatus_message ()));
-    this.username.set_markup (Util.render_emojis (this.fr.get_uname ()));
-    this.status_message.set_markup (Util.render_litemd (this.fr.get_ustatus_message ()));
+    this.label_friend_profil_name.set_markup (Util.render_emojis (this.fr.name));
+    this.label_friend_profile_status_message.set_markup (Util.render_litemd (this.fr.status_message));
+    this.username.set_markup (Util.render_emojis (this.fr.name));
+    this.status_message.set_markup (Util.render_litemd (this.fr.status_message));
 
     this.user_avatar.pixbuf = Util.pubkey_to_image(this.fr.pubkey, 48, 48);;
     this.friend_profil_avatar.pixbuf = Util.pubkey_to_image(this.fr.pubkey, 128, 128);
@@ -139,30 +138,30 @@ class Ricin.ChatView : Gtk.Box {
       this.friend_typing.reveal_child = this.fr.typing;
     });
 
-    this.fr.notify["name"].connect ((obj, prop) => {
-      this.label_friend_profil_name.set_markup (Util.render_emojis (this.fr.get_uname ()));
-      this.username.set_markup (Util.render_emojis (this.fr.get_uname ()));
+    this.fr.name_changed.connect ((prop) => {
+      this.label_friend_profil_name.set_markup (Util.render_emojis (this.fr.name));
+      this.username.set_markup (Util.render_emojis (this.fr.name));
     });
 
-    this.fr.notify["status-message"].connect ((obj, prop) => {
+    this.fr.status_message_changed.connect ((prop) => {
       string markup = Util.add_markup (this.fr.status_message);
       this.status_message.set_markup (markup);
       this.label_friend_profile_status_message.set_markup (markup);
       this.label_friend_last_seen.set_markup (this.fr.last_online ("%H:%M %d/%m/%Y"));
     });
 
-    this.fr.notify["status"].connect ((obj, prop) => {
+    this.fr.status_changed.connect ((prop) => {
       var icon = Util.status_to_icon (this.fr.status, 0);
       this.image_friend_status.set_from_resource (@"/chat/tox/ricin/images/status/$icon.png");
       this.label_friend_last_seen.set_markup (this.fr.last_online ("%H:%M %d/%m/%Y"));
 
-      if (this.fr.last_status != this.fr.status && this.settings.show_status_changes) {
+      if (this.last_status != this.fr.status && this.settings.show_status_changes) {
         this.last_message_sender = "friend";
         this.messages_list.add (new StatusMessageListRow (
           fr.name + _(" is now ") + Util.status_to_string (this.fr.status), this.fr.status)
         );
       }
-      this.fr.last_status = this.fr.status;
+      this.last_status = this.fr.status;
     });
     
     this.fr.file_transfer.connect ((name, size, id) => {
@@ -530,16 +529,6 @@ class Ricin.ChatView : Gtk.Box {
   private void delete_friend () {
     var main_window = ((MainWindow) this.get_toplevel ());
     main_window.remove_friend (this.fr);
-  }
-
-  [GtkCallback]
-  public void block_friend () {
-    this.fr.blocked = !this.fr.blocked;
-    if (this.fr.blocked) {
-      this.button_friend_block.label = _("Unblock");
-    } else {
-      this.button_friend_block.label = _("Block");
-    }
   }
 
   [GtkCallback]

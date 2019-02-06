@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.19.0 -->
+<!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.16"/>
   <object class="GtkBox" id="box_popover_emoticons">
@@ -687,19 +687,13 @@
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="xpad">5</property>
-    <property name="icon_name">edit-delete-symbolic</property>
+    <property name="icon_name">edit-delete</property>
   </object>
   <object class="GtkImage" id="image8">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="xpad">5</property>
-    <property name="icon_name">edit-copy-symbolic</property>
-  </object>
-  <object class="GtkImage" id="image_block_user">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="xpad">5</property>
-    <property name="icon_name">dialog-error-symbolic.symbolic</property>
+    <property name="icon_name">edit-copy</property>
   </object>
   <template class="RicinChatView" parent="GtkBox">
     <property name="visible">True</property>
@@ -1226,25 +1220,6 @@
                             <property name="row_homogeneous">True</property>
                             <property name="column_homogeneous">True</property>
                             <child>
-                              <object class="GtkButton" id="button_friend_block">
-                                <property name="label" translatable="yes">Block</property>
-                                <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <property name="receives_default">True</property>
-                                <property name="image">image_block_user</property>
-                                <property name="always_show_image">True</property>
-                                <signal name="clicked" handler="block_friend" swapped="no"/>
-                                <style>
-                                  <class name="button-dark"/>
-                                  <class name="button-inverted"/>
-                                </style>
-                              </object>
-                              <packing>
-                                <property name="left_attach">0</property>
-                                <property name="top_attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
                               <object class="GtkButton" id="button_friend_delete">
                                 <property name="label" translatable="yes">Delete</property>
                                 <property name="visible">True</property>
@@ -1260,12 +1235,12 @@
                               </object>
                               <packing>
                                 <property name="left_attach">1</property>
-                                <property name="top_attach">1</property>
+                                <property name="top_attach">0</property>
                               </packing>
                             </child>
                             <child>
                               <object class="GtkButton" id="button_friend_copy_toxid">
-                                <property name="label" translatable="yes">Copy friend's ToxID</property>
+                                <property name="label" translatable="yes">Copy ToxID</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
@@ -1280,7 +1255,6 @@
                               <packing>
                                 <property name="left_attach">0</property>
                                 <property name="top_attach">0</property>
-                                <property name="width">2</property>
                               </packing>
                             </child>
                           </object>
