@@ -529,7 +529,7 @@ public class Ricin.MainWindow : Gtk.ApplicationWindow {
       "Are you sure you want to delete \"%s\"?", name
     );
     dialog.secondary_text = @"This will remove \"$name\" and the chat history with it forever.";
-    dialog.add_buttons (_("Yes"), Gtk.ResponseType.ACCEPT, _("No"), Gtk.ResponseType.REJECT);
+    dialog.add_buttons (_("Cancel"), Gtk.ResponseType.REJECT, _("Remove"), Gtk.ResponseType.ACCEPT);
     dialog.response.connect (response => {
       if (response == Gtk.ResponseType.ACCEPT) {
         bool result = friend.delete ();
